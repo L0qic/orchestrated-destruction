@@ -1,0 +1,8 @@
+---
+Credentials:
+  canvas:
+    token:
+      '1': <canvas_token>
+  bridge:
+    token:
+      '1': <bridge_token>
