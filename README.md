@@ -1,28 +1,12 @@
-# README #
+# Orchestrated Destruction
 
-This README would normally document whatever steps are necessary to get your application up and running.
+Summary
+-------
+ Helpful scripts to create/update/destroy different objects in canvas or bridge
 
-### What is this repository for? ###
+### Setup ###
 
-* Quick summary
-* Version
-
-### How do I get set up? ###
-
-* Run setup.sh to setup canvas and bridge tokens
-* Configuration
-* Dependencies
-* Database configuration
-* How to run tests
-* Deployment instructions
-
-### Contribution guidelines ###
-
-* Writing tests
-* Code review
-* Other guidelines
-
-### Who do I talk to? ###
-
-* Repo owner or admin
-* Other community or team contact
+* Run `setup.command` within config directory to setup canvas and bridge tokens
+* Each script requires a `@base_url` to be set
+* Ruby 2.4.1 (scripts tested using this version)
+* Run `bundle install` to install all necessary gems

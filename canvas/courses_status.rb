@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 require 'csv'
-require 'JSON'
+require 'json'
 require 'typhoeus'
 require '../config/config'
 require '../rubyize_json'

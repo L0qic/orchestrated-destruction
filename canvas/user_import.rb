@@ -1,5 +1,6 @@
 require 'json'
 require 'typhoeus'
+require 'forgery'
 require '../config/config.rb'
 require '../rubyize_json'
 
