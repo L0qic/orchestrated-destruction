@@ -70,20 +70,22 @@ end
 #   request(params, :POST, end_point)
 # end
 
-def create_sections(course_ids)
+def create_sections(course_ids, sections_count)
   section_ids = []
-  course_ids.each do |course_id|
-    sis_section_id = rand(10000000)
-    end_point = "/api/v1/courses/#{course_id}/sections"
-      params = {
-        course_section: {
-          name: "GradingPeriodSection_#{course_id}_#{sis_section_id}",
-          sis_section_id: sis_section_id
+  sections_count.times do
+    course_ids.each do |course_id|
+      sis_section_id = rand(10000000)
+      end_point = "/api/v1/courses/#{course_id}/sections"
+        params = {
+          course_section: {
+            name: "GradingPeriodSection_#{course_id}_#{sis_section_id}",
+            sis_section_id: sis_section_id
+          }
         }
-      }
-    puts "Creating section in course: #{course_id}..."
-    section = rubyize_json(request(params, :POST, end_point))
-    section_ids << section["id"]
+      puts "Creating section in course: #{course_id}..."
+      section = rubyize_json(request(params, :POST, end_point))
+      section_ids << section["id"]
+    end
   end
   section_ids
 end
@@ -150,9 +152,10 @@ def create_users(user_count)
   users
 end
 
-def create_enrollments(users,section_ids)
+def create_enrollments(user_count,section_ids)
   enrollments = []
   section_ids.each do |section|
+    users = create_users(user_count)
     end_point = "/api/v1/sections/#{section}/enrollments"
     users.each do |user_id|
       params = {
@@ -203,9 +206,8 @@ end
 def run(opts={})
   term_id = create_term(opts[:term])
   create_grading_set(term_id, opts[:grading_period])
-  section_ids = create_sections(opts[:existing_course_id])
-  users = create_users(opts[:new_user_count])
-  enrollments = create_enrollments(users,section_ids)
+  section_ids = create_sections(opts[:existing_course_id], opts[:section_count_per_course])
+  enrollments = create_enrollments(opts[:new_user_count], section_ids)
   assignments = create_assignments(opts[:existing_course_id],opts[:assignment_count],opts[:grading_period])
   grade_assignments(enrollments,assignments)
 end
