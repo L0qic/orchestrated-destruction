@@ -10,3 +10,6 @@ Summary
 * Each script requires a `@base_url` to be set
 * Ruby 2.4.1 (scripts tested using this version)
 * Run `bundle install` to install all necessary gems
+
+Example:
+ruby other/shutdown.rb <heroku_app>
