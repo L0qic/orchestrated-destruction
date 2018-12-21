@@ -4,6 +4,7 @@ require 'active_support/all'
 require 'json'
 require 'typhoeus'
 require 'pry'
+require_relative "quiz_question_creator"
 
 
 
@@ -14,26 +15,26 @@ require 'pry'
 @number_of_quizzes = 1
 @randomize_types = false
 @quiz_settings = {}
-@qz_random_assign_groups = false
-@qz_time_limit = nil
-@qz_shuffle_answers = false
-@qz_hide_results = ""
-@qz_show_correct_answers = true
-@qz_show_correct_answers_last_attempt = false
-@qz_show_correct_answers_at = nil
-@qz_hide_correct_answers_at = nil
-@qz_allowed_attempts = 1
-@qz_scoring_policy = "keep_highest"
-@qz_one_question_at_a_time = false
-@qz_cant_go_back = false
-@qz_access_code = nil
-@qz_ip_filter = nil
-@qz_due_at = nil
-@qz_lock_at = nil
-@qz_unlock_at = nil
-@qz_published = true
-@qz_one_time_results = false
-@qz_only_visible_to_overrides = false
+# @qz_random_assign_groups = false
+# @qz_time_limit = nil
+# @qz_shuffle_answers = false
+# @qz_hide_results = ""
+# @qz_show_correct_answers = true
+# @qz_show_correct_answers_last_attempt = false
+# @qz_show_correct_answers_at = nil
+# @qz_hide_correct_answers_at = nil
+# @qz_allowed_attempts = 1
+# @qz_scoring_policy = "keep_highest"
+# @qz_one_question_at_a_time = false
+# @qz_cant_go_back = false
+# @qz_access_code = nil
+# @qz_ip_filter = nil
+# @qz_due_at = nil
+# @qz_lock_at = nil
+# @qz_unlock_at = nil
+# @qz_published = true
+# @qz_one_time_results = false
+# @qz_only_visible_to_overrides = false
 
 QUIZ_TYPES = ['assignment', 'practice_quiz', 'graded_survey', 'survey'].freeze
 
@@ -87,6 +88,20 @@ def get_info_from_user
   end
 end
 
+def publish_quiz(course, quiz_id)
+  quiz = Typhoeus.put(
+    @base_url + "/api/v1/courses/#{course}/quizzes/#{quiz_id}",
+    body: {
+      quiz: {
+        published: true
+      }
+    },
+    headers: {:authorization => @access_token, 'Content-Type'=> "application/x-www-form-urlencoded"}
+  )
+  puts quiz
+end
+
+
 def create_quiz(course, quiz_num, make_random, options)
   quiz = Typhoeus::Request.new(
     @base_url + "/api/v1/courses/#{course}/quizzes",
@@ -94,7 +109,7 @@ def create_quiz(course, quiz_num, make_random, options)
     params: {
       quiz: {
         quiz_type: type = make_random ? QUIZ_TYPES.sample : "assignment",
-        title: "Automated #{type} quiz #{quiz_num}",
+        title: "Testing Republish Automated #{type} quiz #{quiz_num}",
         description: "Automated #{type} quiz generated for testing purposes",
         assignment_group_id: options[:assignment_group_id],
         time_limit: options[:time_limit],
@@ -133,8 +148,15 @@ def amount_of_quizzes(course, num, make_random = false, opts = {})
   num.times do |n|
     response = create_quiz(course, n+1, make_random, opts)
     response.on_complete do |resp|
-       res = resp.code == 200 ? "Quiz Batch successfully created rate-limit:#{resp.headers['X-Rate-Limit-Remaining']}" : "Quiz Batch failed with following #{resp.code}"
-       puts res
+      q_id = JSON.parse(resp.body)['id']
+      builder = QuizQuestionCreator.new(@base_url, @access_token, course, q_id)
+      builder.questions(["multiple_choice_question"])
+      res = resp.code == 200 ? "Quiz Batch successfully created rate-limit:#{resp.headers['X-Rate-Limit-Remaining']}" : "Quiz Batch failed with following #{resp.code}"
+      puts res
+      binding.pry
+      if opts[:published]
+        quiz = publish_quiz(course, q_id)
+      end
      end
     hydra.queue(response)
   end
