@@ -13,11 +13,17 @@ class QuizzesCreator
   @number_of_quizzes = 1
   @randomize_types = false
   @q_settings = {}
+  @q_type = ['multiple_choice_question', 'essay_question']
 
   perform
  end
 
- QUIZ_TYPES = %w[assignment practice_quiz graded_survey survey].freeze
+ QUIZ_TYPES = %w(
+   assignment
+   practice_quiz
+   graded_survey
+   survey
+ ).freeze
 
  def truthy?(value)
   %w[true Y].include? value
@@ -80,7 +86,6 @@ class QuizzesCreator
    },
    headers: { authorization: access_token, "Content-Type": 'application/x-www-form-urlencoded' }
   )
-  puts quiz
  end
 
  def create_quiz(course, quiz_num, make_random, options)
@@ -119,17 +124,28 @@ class QuizzesCreator
   quiz
  end
 
+ def create_questions(q_id, course, publish)
+  builder = QuizQuestionCreator.new(base_url, access_token, course, q_id)
+  total = number_of_questions/question_type.count
+  for x in 1..number_of_questions
+     if x <= total
+       builder.questions(question_type[0])
+    else
+       builder.questions(question_type[1])
+    end
+  end
+   publish_quiz(course, q_id) if publish
+ end
+
  def amount_of_quizzes(course, num, make_random = false, opts = {})
   hydra = Typhoeus::Hydra.new(max_concurrency: 30)
   num.times do |n|
    response = create_quiz(course, n + 1, make_random, opts)
    response.on_complete do |resp|
     q_id = JSON.parse(resp.body)['id']
-    builder = QuizQuestionCreator.new(base_url, access_token, course, q_id)
-    builder.questions(['multiple_choice_question'])
     res = resp.code == 200 ? "Quiz Batch successfully created rate-limit:#{resp.headers['X-Rate-Limit-Remaining']}" : "Quiz Batch failed with following #{resp.code}"
     puts res
-    quiz = publish_quiz(course, q_id) if opts[:published]
+    create_questions(q_id, course, opts[:published])
    end
    hydra.queue(response)
   end
