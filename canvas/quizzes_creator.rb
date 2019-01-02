@@ -4,7 +4,8 @@ require 'typhoeus'
 require_relative 'quiz_question_creator'
 
 class QuizzesCreator
- attr_accessor :access_token, :base_url, :course_ids, :number_of_quizzes, :randomize_types, :q_settings
+ attr_accessor :access_token, :base_url, :course_ids, :number_of_quizzes, :randomize_types, :q_settings, :number_of_questions, :q_type
+
 
  def initialize
   @access_token = 'Bearer '
@@ -124,32 +125,37 @@ class QuizzesCreator
   quiz
  end
 
- def create_questions(q_id, course, publish)
-  builder = QuizQuestionCreator.new(base_url, access_token, course, q_id)
-  total = number_of_questions/question_type.count
-  for x in 1..number_of_questions
-     if x <= total
-       builder.questions(question_type[0])
-    else
-       builder.questions(question_type[1])
+ def create_questions(quiz_ids, course)
+  hydra = Typhoeus::Hydra.new(max_concurrency: 30)
+  quiz_ids.each do |id|
+    total = number_of_questions/q_type.count
+    builder = QuizQuestionCreator.new(base_url, access_token, course, id)
+    for x in 1..number_of_questions
+      response = x <= total ? builder.questions(q_type[0]) : builder.questions(q_type[1])
+      response.on_complete do |resp|
+       res = resp.code == 200 ? "Question Batch successfully created rate-limit:#{resp.headers['X-Rate-Limit-Remaining']}" : "Question Batch failed with following #{resp.code}"
+       puts res
+      end
+      hydra.queue(response)
     end
   end
-   publish_quiz(course, q_id) if publish
+    hydra.run
  end
 
  def amount_of_quizzes(course, num, make_random = false, opts = {})
   hydra = Typhoeus::Hydra.new(max_concurrency: 30)
+  q_ids = []
   num.times do |n|
    response = create_quiz(course, n + 1, make_random, opts)
    response.on_complete do |resp|
-    q_id = JSON.parse(resp.body)['id']
+    q_ids << JSON.parse(resp.body)['id']
     res = resp.code == 200 ? "Quiz Batch successfully created rate-limit:#{resp.headers['X-Rate-Limit-Remaining']}" : "Quiz Batch failed with following #{resp.code}"
     puts res
-    create_questions(q_id, course, opts[:published])
    end
    hydra.queue(response)
   end
   hydra.run
+  create_questions(q_ids, course)
  end
 
  def perform

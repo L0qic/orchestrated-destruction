@@ -45,7 +45,7 @@ class QuizQuestionCreator
     },
     headers: { authorization: token }
    )
-   rubyize_json(question)
+   question
  end
 
  def question_type_answer(question_type)
